@@ -68,8 +68,6 @@ const router = createRouter({
                 }
             ],
         },
-
-
         // 404 处理（必须放在最后）
         {
             path: '/404',

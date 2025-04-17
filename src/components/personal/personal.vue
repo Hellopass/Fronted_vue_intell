@@ -1,14 +1,14 @@
 <!-- 代码已包含 CSS：使用 TailwindCSS , 安装 TailwindCSS 后方可看到布局样式效果 -->
 
 <template>
-  <div class="min-h-screen bg-gray-50 py-8">
+  <div class="min-h-screen bg-gray-50 py-8" v-if="refresh.showRefresh">
     <div class="mx-auto max-w-7xl px-4">
       <div class="bg-white rounded-lg shadow-sm p-8">
         <!-- 头部区域 -->
         <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
           <div class="flex items-center gap-4">
             <div class="w-16 h-16 rounded-full overflow-hidden">
-              <img :src="avatarUrl" alt="用户头像" class="w-full h-full object-cover"/>
+              <img :src="userData.avatar" alt="用户头像" class="w-full h-full object-cover"/>
             </div>
             <div>
               <h1 class="text-2xl font-medium text-gray-900">{{ userData.UserName }}</h1>
@@ -25,10 +25,10 @@
               title="编辑信息"
               v-model="dialogVisible"
               width="50%">
-            <update_personal :user-data="userData"></update_personal>
+            <update_personal :user-data="userData" v-on:listenToChildEvent="getvalue"></update_personal>
             <span slot="footer" class="dialog-footer">
-        <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+        <el-button type="danger" @click="dialogVisible = false"
+                   class="absolute bottom-0 left-0 h-16 w-40 ...">取消修改</el-button>
       </span>
           </el-dialog>
         </div>
@@ -104,10 +104,6 @@
                 <span class="w-24 text-gray-500">研究方向</span>
                 <span class="flex-1 text-gray-900">{{ userData.Research }}</span>
               </div>
-              <div class="flex items-center">
-                <span class="w-24 text-gray-500">教学 IP</span>
-                <span class="flex-1 text-gray-900">{{ userData.TechIP }}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -117,7 +113,7 @@
 </template>
 
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue';
+import {onBeforeMount, onMounted, ref, reactive, nextTick} from 'vue';
 import {Edit} from '@element-plus/icons-vue';
 import axios from '../../axios/axios';
 import router from "../../router/index"
@@ -125,7 +121,6 @@ import {ElMessage} from "element-plus";
 import jwt_parse from "../../assets/jwt";
 import Update_personal from "./update_personal.vue";
 
-const avatarUrl = 'https://ai-public.mastergo.com/ai/img_res/59e20975b1acc5822314f29d0d3cb697.jpg';
 
 interface UserData {
   UserID: number;
@@ -160,27 +155,34 @@ const userData = ref<UserData>({
   TechIP: '',
   Cour: '',
   Research: '',
-  avatar: avatarUrl,
+  avatar: '',
 });
 const dialogVisible = ref(false);
 const handleEdit = () => {
   dialogVisible.value = true
-  console.log('编辑信息')
 };
 
-onMounted(() => {
-  //向后端请求
-  //解析jwt
+
+const getvalue = (data) => {
+  dialogVisible.value = data
+  //刷新personal页面
+  if (!data) {
+    req()
+  }
+}
+const refresh = reactive({showRefresh: true})
+
+
+const req = () => {
   const token = localStorage.getItem('token')
   const parse = jwt_parse(token)
-
-  // const response = await fetch('http://localhost:8080/user/10086');
   axios.get('/user/find', {
     params: {
       'user_id': parse.user_id
     }
   }).then(res => {
     const d = res.data.data
+    console.log(d)
     userData.value.UserID = d.id
     userData.value.UserName = d.user_name
     userData.value.DepID = d.dep_id
@@ -195,7 +197,7 @@ onMounted(() => {
     userData.value.TechIP = d.tech_ip
     userData.value.Cour = d.cour
     userData.value.Research = d.research
-
+    userData.value.avatar = d.avatar_url
   }).catch(err => {
     ElMessage.error('登录过期，请重新登录')
     router.push('/').then(() => {
@@ -205,9 +207,11 @@ onMounted(() => {
     })
   })
 
+}
+
+onMounted(() => {
+  req()
 })
-
-
 </script>
 
 <style scoped>

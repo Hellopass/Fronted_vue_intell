@@ -8,9 +8,9 @@
         <div class="flex justify-between items-center mb-6">
           <h1 class="text-2xl font-bold text-gray-800">专利申请</h1>
           <div class="flex items-center gap-4">
-            <span v-if="autoSaveStatus" class="text-sm text-green-600 flex items-center">
-              <el-icon class="mr-1"><Check/></el-icon>已保存
-            </span>
+            <!--            <span v-if="autoSaveStatus" class="text-sm text-green-600 flex items-center">-->
+            <!--              <el-icon class="mr-1"><Check/></el-icon>已保存-->
+            <!--            </span>-->
             <el-button type="primary" class="!rounded-button" @click="showHelp = true">
               <el-icon class="mr-1">
                 <QuestionFilled/>
@@ -22,7 +22,6 @@
 
         <el-steps :active="currentStep" finish-status="success" class="mb-6">
           <el-step title="基本信息" description="填写专利基本信息"/>
-          <el-step title="技术说明" description="填写技术细节"/>
           <el-step title="文件上传" description="上传相关文件"/>
           <el-step title="确认提交" description="确认申请信息"/>
         </el-steps>
@@ -36,39 +35,27 @@
             <el-form-item label="专利名称" required>
               <el-input v-model="basicForm.title" placeholder="请输入专利名称"/>
             </el-form-item>
-            <el-form-item label="发明人" required>
-              <el-input v-model="basicForm.inventor" placeholder="请输入发明人姓名"/>
-            </el-form-item>
             <el-form-item label="专利类型" required>
               <el-select v-model="basicForm.type" placeholder="请选择专利类型" class="w-full">
-                <el-option label="发明专利" value="invention"/>
-                <el-option label="实用新型" value="utility"/>
-                <el-option label="外观设计" value="design"/>
+                <el-option label="发明专利" value="0"/>
+                <el-option label="实用新型" value="1"/>
+                <el-option label="外观设计" value="2"/>
               </el-select>
             </el-form-item>
           </el-form>
         </div>
-
         <div v-if="currentStep === 1">
-          <h2 class="text-xl font-semibold mb-6">技术说明</h2>
-          <el-form ref="techFormRef" :model="techForm" label-width="120px">
-            <el-form-item label="技术领域" required>
-              <el-input type="textarea" v-model="techForm.field" rows="3" placeholder="请描述专利所属技术领域"/>
-            </el-form-item>
-            <el-form-item label="技术方案" required>
-              <el-input type="textarea" v-model="techForm.solution" rows="6" placeholder="请详细描述技术方案"/>
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <div v-if="currentStep === 2">
           <h2 class="text-xl font-semibold mb-6">文件上传</h2>
           <el-upload
+              ref="uploadRef"
               class="upload-demo"
-              drag
               action="#"
+              drag
               :auto-upload="false"
+              :on-success="handleFileSuccess"
+              :http-request:="handleFileHttpReq"
               :on-change="handleFileChange"
+              multiple
           >
             <el-icon class="el-icon--upload">
               <Upload/>
@@ -77,32 +64,17 @@
               将文件拖到此处，或<em>点击上传</em>
             </div>
           </el-upload>
-
-          <div class="mt-6">
-            <h3 class="font-medium mb-4">已上传文件</h3>
-            <el-table :data="uploadedFiles" style="width: 100%">
-              <el-table-column prop="name" label="文件名称"/>
-              <el-table-column prop="size" label="大小"/>
-              <el-table-column prop="status" label="状态"/>
-              <el-table-column label="操作">
-                <template #default="scope">
-                  <el-button type="danger" @click="removeFile(scope.$index)" class="!rounded-button">删除</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
         </div>
 
-        <div v-if="currentStep === 3">
+        <div v-if="currentStep === 2">
           <h2 class="text-xl font-semibold mb-6">确认信息</h2>
           <div class="bg-gray-50 p-6 rounded-lg">
             <div class="grid grid-cols-2 gap-6">
               <div>
                 <h3 class="font-medium mb-2">基本信息</h3>
                 <p>专利名称：{{ basicForm.title }}</p>
-                <p>发明人：{{ basicForm.inventor }}</p>
                 <p>专利类型：{{
-                    basicForm.type === 'invention' ? '发明专利' : basicForm.type === 'utility' ? '实用新型' : '外观设计'
+                    basicForm.type === '0' ? '发明专利' : basicForm.type === '1' ? '实用新型' : basicForm.type === '2' ? '外观设计' : ''
                   }}</p>
               </div>
               <div>
@@ -130,14 +102,14 @@
                 type="primary"
                 @click="nextStep"
                 class="!rounded-button"
-                v-if="currentStep < 3"
+                v-if="currentStep < 2"
             >下一步
             </el-button>
             <el-button
                 type="success"
                 @click="submitApplication"
                 class="!rounded-button"
-                v-if="currentStep === 3"
+                v-if="currentStep === 2"
             >提交申请
             </el-button>
           </div>
@@ -148,16 +120,17 @@
     <!-- 帮助文档对话框 -->
     <el-dialog
         v-model="showHelp"
-        title="帮助文档"
+        title="专利申请流程和材料表格"
         width="50%"
     >
       <div class="help-content">
-        <h3 class="font-medium mb-4">专利申请流程说明</h3>
         <ol class="list-decimal list-inside space-y-2">
-          <li>填写基本信息：包括专利名称、发明人信息等</li>
-          <li>技术说明：详细描述专利的技术方案和应用领域</li>
-          <li>上传文件：上传相关证明文件和技术图纸</li>
-          <li>确认提交：核对所有信息后提交申请</li>
+          <li>
+            申请发明专利需要提交《发明专利请求书》、《说明书》、《权利要求书》、《说明书摘要》，根据您的技术方案必要时还需要提交《说明书附图》
+          </li>
+          <li>
+            申请文件必须使用国家知识产权局统一制定的标准表格。这些表格可以向各地的专利代办处索取或直接从国家知识产权局政府网站下载。下载表格链接为：https://www.cnipa.gov.cn/col/col192/index.html，表格背面有说明和注意事项。
+          </li>
         </ol>
       </div>
     </el-dialog>
@@ -168,6 +141,11 @@
 import {ref} from 'vue';
 import {ElMessage} from 'element-plus';
 import {Check, Upload, QuestionFilled} from '@element-plus/icons-vue';
+import type {UploadInstance} from 'element-plus'
+import axios from "axios";
+import router from "../../../router";
+import {CreatePatent, Patent, UploadFile} from '../../../axios/patent'
+
 
 const currentStep = ref(0);
 const showHelp = ref(false);
@@ -175,7 +153,6 @@ const autoSaveStatus = ref(true);
 
 const basicForm = ref({
   title: '',
-  inventor: '',
   type: ''
 });
 
@@ -185,22 +162,22 @@ const techForm = ref({
 });
 
 const uploadedFiles = ref([
-  {
-    name: '专利说明书.pdf',
-    size: '2.5MB',
-    status: '已上传'
-  },
-  {
-    name: '技术图纸.dwg',
-    size: '1.8MB',
-    status: '已上传'
-  }
+  // {
+  //   name: '专利说明书.pdf',
+  //   size: '2.5MB',
+  //   status: '待上传'
+  // },
+  // {
+  //   name: '技术图纸.dwg',
+  //   size: '1.8MB',
+  //   status: '待上传'
+  // }
 ]);
 
 const nextStep = () => {
   if (currentStep.value < 3) {
     currentStep.value++;
-    autoSave();
+    // autoSave();
   }
 };
 
@@ -213,8 +190,8 @@ const prevStep = () => {
 const handleFileChange = (file: any) => {
   uploadedFiles.value.push({
     name: file.name,
+    file: file.raw,
     size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-    status: '已上传'
   });
 };
 
@@ -222,16 +199,63 @@ const removeFile = (index: number) => {
   uploadedFiles.value.splice(index, 1);
 };
 
-const autoSave = () => {
-  autoSaveStatus.value = false;
-  setTimeout(() => {
-    autoSaveStatus.value = true;
-  }, 1000);
-};
+// const autoSave = () => {
+//   autoSaveStatus.value = false;
+//   setTimeout(() => {
+//     autoSaveStatus.value = true;
+//   }, 1000);
+// };
 
 const submitApplication = () => {
-  ElMessage.success('申请已提交成功！');
+  //先提交信息拿到apply_no
+  const p = new Patent(basicForm.value.title, basicForm.value.type, 0, 2)
+  const req = CreatePatent(p)
+  req.then((res) => {
+    //拿到申请号
+    const apply_no = res.data.data.apply_no
+    if (apply_no === '') {
+      ElMessage.success('资料不全，请补全之后在提交');
+    } else {
+      //上传文件
+      const uploadFile = UploadFile(uploadedFiles, apply_no);
+      uploadFile.then((res) => {
+        console.log(res)
+        if (res.data.success) {
+          ElMessage.success('申请已提交成功！');
+          //清空表单
+          basicForm.value = {
+            title: '',
+            type: '',
+          }
+          uploadedFiles.value = []
+          ToParent()
+        } else {
+          ElMessage.error('申请提交失败！请联系管理员');
+        }
+      })
+    }
+  }).catch((err) => {
+    ElMessage.error('申请提交失败！请补全信息');
+  })
+  currentStep.value = 0
 };
+
+//向父组件传值
+const emit = defineEmits(['listenPatent'])
+const ToParent = () => {
+  //多个事件
+  emit('listenPatent', false)
+
+}
+
+const handleFileSuccess = () => {
+
+}
+
+//文件上传
+const handleFileHttpReq = (file) => {
+  return file
+}
 </script>
 
 <style scoped>

@@ -12,7 +12,9 @@
               class="avatar-uploader"
               :show-file-list="false"
               :on-success="handleAvatarSuccess"
-              :before-upload="beforeAvatarUpload">
+              :before-upload="beforeAvatarUpload"
+              :http-request="handleUpload"
+          >
             <div class="relative">
               <img v-if="imageUrl" :src="imageUrl" class="w-24 h-24 rounded-full object-cover"/>
               <img v-else :src="form.avatar" class="w-24 h-24 rounded-full object-cover"/>
@@ -54,19 +56,21 @@
               <el-form-item label="政治面貌" prop="Political">
                 <el-select v-model="form.Political" placeholder="请选择政治面貌">
                   <el-option label="中共党员" value="中共党员"/>
+                  <el-option label="中共预备党员" value="中共预备党员"/>
                   <el-option label="共青团员" value="共青团员"/>
                   <el-option label="群众" value="群众"/>
+                  <el-option label="其他" value="其他"/>
                 </el-select>
               </el-form-item>
               <el-form-item label="一级学科" prop="Unit">
-                <el-input v-model="form.Unit" placeholder="请输入一级学科"/>
+                <el-input v-model="form.Cour" placeholder="请输入一级学科"/>
               </el-form-item>
             </div>
             <!-- 单位信息 -->
             <div class="col-span-2">
               <h2 class="text-lg font-medium mb-4">单位信息</h2>
               <el-form-item label="所属学院" prop="Cour">
-                <el-input v-model="form.Cour"/>
+                <el-input v-model="form.Unit"/>
               </el-form-item>
               <el-form-item label="部门 ID" prop="DepID">
                 <el-input v-model="form.DepID"/>
@@ -77,6 +81,7 @@
                   <el-option label="副教授" value="副教授"/>
                   <el-option label="讲师" value="讲师"/>
                   <el-option label="助教" value="助教"/>
+                  <el-option label="学生" value="学生"/>
                 </el-select>
               </el-form-item>
             </div>
@@ -89,9 +94,11 @@
               </el-form-item>
             </div>
           </div>
+
         </el-form>
       </div>
     </div>
+    <el-button type="primary" class="a" @click="ModifyTheUser">确定修改</el-button>
   </div>
 </template>
 <script lang="ts" setup>
@@ -99,6 +106,12 @@ import {onMounted, ref} from 'vue';
 import type {FormInstance, FormRules} from 'element-plus';
 import {Plus} from '@element-plus/icons-vue';
 import {ElMessage} from "element-plus";
+import router from '../../router/index'
+import axios from '../../axios/axios'
+import {defineEmits} from "vue"
+
+//上传头像url--后端返回的头像地址
+const AvatarUrl = ref('')
 
 const imageUrl = ref('');
 const formRef = ref<FormInstance>();
@@ -122,14 +135,26 @@ const form = ref({
 const rules = ref<FormRules>({
   LastDegree: [{required: true, message: '请选择最高学历', trigger: 'change'}],
   Political: [{required: true, message: '请选择政治面貌', trigger: 'change'}],
-  Unit: [{required: true, message: '请输入一级学科', trigger: 'blur'}],
   Research: [{required: true, message: '请输入研究方向', trigger: 'blur'}],
   Cour: [{required: true, message: '请输入所属学院', trigger: 'blur'}],
   DepID: [{required: true, message: '请输入部门ID', trigger: 'blur'}],
   TechIP: [{required: true, message: '请选择职称', trigger: 'change'}],
 });
+
+//上传头像
+const handleUpload = async (file) => {
+  const fd = new FormData();
+  fd.append('avatar', file.file);
+  fd.append('user_id', form.value.UserID);
+  const res = await axios.post('/user/upload_avatar', fd, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  AvatarUrl.value = res.data.data
+}
 const handleAvatarSuccess = (res: any) => {
-  imageUrl.value = URL.createObjectURL(res.raw);
+  imageUrl.value = AvatarUrl.value
 };
 const beforeAvatarUpload = (file: File) => {
   const isJPG = file.type === 'image/jpeg';
@@ -143,19 +168,8 @@ const beforeAvatarUpload = (file: File) => {
     ElMessage.error('上传头像图片大小不能超过 2MB!');
     return false;
   }
+
   return true;
-};
-const submitForm = async (formEl: FormInstance | undefined) => {
-  if (!formEl) return;
-  await formEl.validate((valid) => {
-    if (valid) {
-      ElMessage.success('保存成功');
-    }
-  });
-};
-const resetForm = (formEl: FormInstance | undefined) => {
-  if (!formEl) return;
-  formEl.resetFields();
 };
 
 //传递值
@@ -186,6 +200,42 @@ onMounted(() => {
   };
 })
 
+//修改
+const ModifyTheUser = () => {
+  //返回数据
+  const form_Data = new FormData()
+  form_Data.append('user_id', form.value.UserID)//用户id
+  form_Data.append('last_degree', form.value.LastDegree)//最高学历
+  form_Data.append('political', form.value.Political)//政治面貌
+  form_Data.append('cour', form.value.Cour)//一级学科
+  form_Data.append('dep_id', form.value.DepID)//部门id
+  form_Data.append('research', form.value.Research)//研究方向
+  form_Data.append('unit', form.value.Unit)//所属学院
+  form_Data.append('tech_ip', form.value.TechIP)//技术职称
+  //发送put请求
+  axios.put('/user/edit', form_Data, {
+    headers: {'Content-Type': 'multipart/form-data'}
+  }).then(res => {
+    const data = res.data;
+    if (data.success) {
+      ElMessage.success(data.message);
+    } else {
+      ElMessage.error(data.message);
+    }
+    //向父组件传值
+    ToParent()
+  }).catch(err => {
+    ElMessage.error('修改失败');
+  })
+}
+//向父组件传值
+const emit = defineEmits(['listenToChildEvent'])
+const ToParent = () => {
+  //多个事件
+  emit('listenToChildEvent', false)
+
+}
+
 
 </script>
 <style scoped>
@@ -206,5 +256,13 @@ onMounted(() => {
 
 .avatar-uploader__wrapper:hover {
   border-color: var(--el-color-primary);
+}
+
+.a {
+  position: absolute;
+  width: 160px;
+  bottom: 0;
+  height: 40px;
+  right: 0;
 }
 </style>

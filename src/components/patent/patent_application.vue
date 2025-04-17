@@ -17,22 +17,14 @@
               </el-icon>
             </template>
           </el-input>
-          <el-date-picker
-              v-model="searchForm.dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              class="w-200"
-          />
           <el-select v-model="searchForm.status" placeholder="申请状态" class="w-32">
             <el-option label="全部" value=""/>
-            <el-option label="待提交" value="pending"/>
-            <el-option label="审核中" value="reviewing"/>
-            <el-option label="已授权" value="approved"/>
-            <el-option label="已驳回" value="rejected"/>
+            <el-option label="待提交" value="1"/>
+            <el-option label="审核中" value="2"/>
+            <el-option label="已授权" value="3"/>
+            <el-option label="已驳回" value="4"/>
           </el-select>
-          <el-button type="primary" class="!rounded-button whitespace-nowrap" @click="handleSearch">
+          <el-button type="primary" class="!rounded-button whitespace-nowrap" @click="handleSearchFuzzy">
             搜索
           </el-button>
           <el-button class="!rounded-button whitespace-nowrap" @click="resetSearch">重置</el-button>
@@ -49,7 +41,7 @@
               新建申请
             </el-button>
             <el-dialog v-model="dialogVisible" title="新建申请" width="50%" @close="handleClose">
-              <patent-apply></patent-apply>
+              <patent-apply v-on:listenPatent="getvalue"></patent-apply>
               <template #footer>
                   <span class="dialog-footer">
                  <el-button @click="dialogVisible = false">取 消</el-button>
@@ -59,14 +51,7 @@
             </el-dialog>
             <!--            ----------------------------------->
 
-            <el-button class="!rounded-button whitespace-nowrap" @click="handleBulkImport">
-              <el-icon class="mr-1">
-                <Upload/>
-              </el-icon>
-              批量导入
-            </el-button>
             <el-dialog v-model="bulkImportDialogVisible" title="批量申请" width="50%" @close="handleCloseBulkImport">
-              <!--这里填入组件-->
               <bulk_import></bulk_import>
               <template #footer>
                   <span class="dialog-footer">
@@ -80,7 +65,7 @@
               <el-icon class="mr-1">
                 <Download/>
               </el-icon>
-              批量导出
+              导出 Excel
             </el-button>
           </div>
           <div class="flex items-center space-x-4">
@@ -133,7 +118,26 @@
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <el-button-group>
+                <!--           ============================================--------------->
                 <el-button type="primary" link @click="handleView(row)">查看</el-button>
+                <el-dialog v-model="lookValue" width="60%" @close="lookClose">
+                  <patent_information
+                      :applicant="row.applicant"
+                      :application-no="row.applicationNo"
+                      :date="row.date"
+                      :name="row.name"
+                      :progress=row.progress
+                      :status=row.type
+                  ></patent_information>
+                  <template #footer>
+                  <span class="dialog-footer">
+                 <el-button @click="lookValue = false">取 消</el-button>
+                 <el-button type="primary" @click="lookValue = false">确 定</el-button>
+                 </span>
+                  </template>
+                </el-dialog>
+                <!--           ============================================--------------->
+
                 <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
                 <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
               </el-button-group>
@@ -157,63 +161,40 @@
   </div>
 </template>
 <script lang="ts" setup>
-import {ref} from 'vue';
+import {onMounted, ref} from 'vue';
 import {Search, Plus, Upload, Download, List, Grid, Refresh, Document} from '@element-plus/icons-vue';
-import type {DateModelType} from 'element-plus';
+
 import PatentApply from './dialog/patent_apply.vue';
 import Bulk_import from "./dialog/bulk_import.vue";
 import {ElMessage, ElMessageBox} from "element-plus";
 import axios from "axios";
+import {GetPatentList, DeletePatent, GetPatentListByKeyword} from '../../axios/patent'
+import Patent_information from "./dialog/patent_information.vue";
 
+const lookValue = ref(false)
 const loading = ref(false);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(100);
 const searchForm = ref({
   keyword: '',
-  dateRange: [] as DateModelType[],
   status: ''
 });
-const tableData = ref([
-  {
-    name: '一种智能家居控制系统及方法',
-    applicationNo: 'CN202310123456.X',
-    applicant: '陈志远',
-    date: '2023-06-15',
-    status: 'reviewing',
-    progress: 45
-  },
-  {
-    name: '基于人工智能的图像识别装置',
-    applicationNo: 'CN202310789012.X',
-    applicant: '林思琪',
-    date: '2023-07-22',
-    status: 'approved',
-    progress: 100
-  },
-  {
-    name: '新型环保材料制备工艺',
-    applicationNo: 'CN202310345678.X',
-    applicant: '王建国',
-    date: '2023-08-05',
-    status: 'pending',
-    progress: 20
-  },
-  {
-    name: '电动汽车充电系统优化方法',
-    applicationNo: 'CN202310901234.X',
-    applicant: '赵明华',
-    date: '2023-09-18',
-    status: 'rejected',
-    progress: 60
-  }
-]);
+const tableData = ref([]);
+const tableDataB = ref([]);
+
+//查看
+const lookClose = () => {
+  lookValue.value = false
+}
+
+
 const getStatusType = (status: string) => {
   const map: Record<string, string> = {
-    pending: 'info',
-    reviewing: 'warning',
-    approved: 'success',
-    rejected: 'danger'
+    1: 'info',
+    2: 'warning',
+    3: 'success',
+    4: 'danger'
   };
   return String(map[status] || 'info');
 };
@@ -221,18 +202,78 @@ const getStatusType = (status: string) => {
 
 const getStatusText = (status: string) => {
   const map: Record<string, string> = {
-    pending: '待提交',
-    reviewing: '审核中',
-    approved: '已授权',
-    rejected: '已驳回'
+    1: '待提交',
+    2: '审核中',
+    3: '已授权',
+    4: '已驳回'
   };
   return map[status] || '未知';
 };
+
+//模糊查询
+const handleSearchFuzzy = () => {
+  const req = GetPatentListByKeyword(searchForm.value.keyword, searchForm.value.status)
+  req.then(res => {
+    tableData.value = []
+    const data = res.data.data;
+    tableDataB.value = data
+    total.value = data.length;
+    const d = pagination(currentPage.value, pageSize.value, data)
+    d.forEach(d => {
+      //分割时间
+      const split = d.apply_data.split('T');
+      tableData.value.push({
+        type: d.patent_type,
+        name: d.patent_name,
+        applicationNo: d.apply_no,
+        applicant: d.User.user_name,
+        date: split[0],
+        status: d.status,
+        progress: d.status != 4 ? (d.status / 3).toFixed(2) * 100 : 100
+      })
+    })
+  })
+}
+
+
+//分页算法
+const pagination = (currentPage, pageSize, data) => {
+  //计算总页数
+  if (currentPage == 1 || data.length < pageSize) {
+    return data.slice(0, pageSize);
+  }
+  const start = (currentPage - 1) * pageSize;
+  const end = currentPage * pageSize;
+  return data.slice(start, end);
+}
+
 const handleSearch = () => {
+  tableData.value = []
   loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-  }, 1000);
+  GetPatentList().then(res => {
+    const data = res.data.data;
+    tableDataB.value = data
+    total.value = data.length;
+    const d = pagination(currentPage.value, pageSize.value, data)
+
+    d.forEach(d => {
+      //分割时间
+      const split = d.apply_data.split('T');
+      tableData.value.push({
+        type: d.patent_type,
+        name: d.patent_name,
+        applicationNo: d.apply_no,
+        applicant: d.User.user_name,
+        date: split[0],
+        status: d.status,
+        progress: d.status != 4 ? (d.status / 3).toFixed(2) * 100 : 100
+      })
+    })
+  }).catch(err => {
+    console.log(err)
+    ElMessage.error('系统错误!请联系管理员')
+  })
+  loading.value = false;
 };
 const resetSearch = () => {
   searchForm.value = {
@@ -251,32 +292,30 @@ const handleClose = () => {
 };
 const refreshTable = () => {
   loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-  }, 1000);
+  handleSearch()
 };
 const handleView = (row: any) => {
-  ElMessageBox.alert(Object.keys(row).map(key => `${key}: ${row[key]}`).join('\n'), '查看', {
-    confirmButtonText: '确定',
-    type: 'info'
-  });
-  axios.get(`http://localhost:8080/search?applicationNo=${row.applicationNo}`)
-      .then(response => {
-        const data = response.data;
-        ElMessageBox.alert(Object.keys(data).map(key => `${key}: ${data[key]}`).join(' \n'), '查看', {
-          confirmButtonText: '确定',
-          type: 'info'
-        });
-      })
-      .catch(error => {
-        console.error(error);
-      });
+  lookValue.value = true
+
 };
 const handleEdit = (row: any) => {
   console.log('编辑', row);
+  ElMessage.info('还在开发')
 };
 const handleDelete = (row: any) => {
-  console.log('删除', row);
+  //删除专利信息
+  DeletePatent(row.applicationNo).then(res => {
+    if (res.data.success) {
+      handleSearch()
+      ElMessage.success("删除成功")
+    } else {
+      ElMessage.success("删除失败")
+
+    }
+  }).catch(err => {
+    ElMessage.success("删除出现错误")
+
+  })
 };
 const handleSizeChange = (val: number) => {
   pageSize.value = val;
@@ -284,7 +323,21 @@ const handleSizeChange = (val: number) => {
 };
 const handleCurrentChange = (val: number) => {
   currentPage.value = val;
-  handleSearch();
+  tableData.value = []
+  const d = pagination(currentPage.value, pageSize.value, tableDataB.value)
+  d.forEach(d => {
+    //分割时间
+    const split = d.apply_data.split('T');
+    tableData.value.push({
+      type: d.patent_type,
+      name: d.patent_name,
+      applicationNo: d.apply_no,
+      applicant: d.User.user_name,
+      date: split[0],
+      status: d.status,
+      progress: d.status != 4 ? (d.status / 3).toFixed(2) * 100 : 100
+    })
+  })
 };
 
 const handleSuccess = (response, file, fileList) => {
@@ -314,8 +367,25 @@ const handleUploadBulkImport = () => {
 const exportData = () => {
   ElMessage.info("正在开发")
 }
+
+//子组件传值
+const getvalue = (value) => {
+  dialogVisible.value = value
+  handleSearch()
+}
+
+
+//获取数据
+onMounted(() => {
+  handleSearch()
+})
+
 </script>
 <style scoped>
+.el-table__body :deep(.el-table__inner-wrapper) {
+  border: none;
+}
+
 .el-input :deep(.el-input__wrapper) {
   box-shadow: 0 0 0 1px #e5e7eb inset;
 }
@@ -331,4 +401,5 @@ const exportData = () => {
 .el-select :deep(.el-input__wrapper.is-focus) {
   box-shadow: 0 0 0 1px #409eff inset;
 }
+
 </style>

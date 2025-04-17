@@ -22,8 +22,8 @@
             </el-icon>
             <span>专利管理</span>
           </template>
-          <el-menu-item index="2-1" @click="navigateTo('patent_apply')">专利申请</el-menu-item>
-          <el-menu-item index="2-2" @click="navigateTo('patent_search')">专利检索</el-menu-item>
+          <el-menu-item index="2-1" @click="navigateTo('patent_apply')">专利信息</el-menu-item>
+<!--          <el-menu-item index="2-2" @click="navigateTo('patent_search')">专利检索</el-menu-item>-->
           <el-menu-item index="2-3" @click="navigateTo('patent_fee')">年费管理</el-menu-item>
           <el-menu-item index="2-4" @click="navigateTo('patent_statistics')">数据统计</el-menu-item>
         </el-sub-menu>

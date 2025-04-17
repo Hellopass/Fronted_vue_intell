@@ -152,6 +152,7 @@ import {View, Hide} from '@element-plus/icons-vue';
 import {ElMessage} from 'element-plus';
 import axios from "../axios/axios";
 import router from "../router/index"
+
 interface FormData {
   name: string;
   email: string;
@@ -305,9 +306,11 @@ const handleSubmit = async () => {
       }
 
     }).catch(error => {
+      console.log(error)
       ElMessage.error('注册失败，请重试');
     })
   } catch (error) {
+    console.log(error)
     ElMessage.error('注册失败，请重试');
   } finally {
     loading.value = false;
