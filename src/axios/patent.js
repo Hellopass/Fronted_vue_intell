@@ -1,6 +1,7 @@
 import axios from "./axios.js"
 import jwt_parse from "../assets/jwt.js";
 import nginx from './nginx.js'
+import {ElMessage} from "element-plus";
 
 //专利类
 export class Patent {
@@ -85,3 +86,65 @@ export function GetPatentFilePath(apply_no) {
 export function GetPatentFile(url) {
     return nginx.get(url)
 }
+
+// UpdateStatusByApplicationNumber 根据申请号更新status--之后要更新年费--金额
+export function UpdateStatusByApplicationNumber(apply_no, status) {
+    const f = new FormData();
+    f.append('apply_no', apply_no)
+    f.append('status', status)
+
+    axios.put(`/patent/update_status`, f, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    }).then(res => {
+        console.log(res)
+    }).catch(err => {
+        console.log(err)
+    })
+}
+
+//专利年费
+export function GetFeeStatistics() {
+    return axios.get(`/patent/get_fee_statistics`)
+}
+
+//获取所有年费
+export function GetAllFee(page, size) {
+    return axios.get(`/patent/get_fee_all`, {
+        params: {
+            page: page,
+            size: size
+        }
+    })
+}
+
+//更新金额
+export function UpdateFee(apply_no, amount) {
+    const f = new FormData();
+    f.append('apply_no', apply_no)
+    f.append('amount', amount)
+    return axios.put(`/patent/update_amount`, f, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+}
+
+//GetPatentFeesByFilters(statusPtr, keyword, page, pageSize) 模糊查询
+// GET /api/patent-fees?
+//     status=1&
+//     keyword=2023专利&
+//     page=2&
+//     pageSize=20
+export function GetPatentFeesByFilters(status, keyword, page, pageSize) {
+    return axios.get(`/patent/get_fee_fuzzy`, {
+        params: {
+            status: status,
+            keyword: keyword,
+            page: page,
+            pageSize: pageSize
+        }
+    })
+}
+

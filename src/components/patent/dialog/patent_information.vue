@@ -4,14 +4,14 @@
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-7xl mx-auto px-4">
       <!-- 标题区域 -->
-      <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-6 mb-8">
-        <h1 class="text-2xl font-bold text-white">专利详情</h1>
-      </div>
 
+      <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-6 mb-8 flex items-center gap-4">
+        <h1 class="text-2xl font-bold text-white flex-1">专利详情</h1>
+        <el-button type="success" class="ml-4" @click="handleApprove">申请审核</el-button>
+      </div>
       <!-- 基础信息卡片 -->
       <div class="bg-white rounded-lg shadow-md p-6 mb-8">
         <div class="space-y-6">
-
           <div>
             <h2 class="text-xl font-bold text-gray-900 mb-4">{{ prop.name }}</h2>
 
@@ -124,8 +124,44 @@
 <script lang="ts" setup>
 import {defineProps, onMounted, ref} from 'vue';
 import {Document, Download, Files, Picture} from '@element-plus/icons-vue';
-import {ElMessage} from 'element-plus';
-import {GetPatentFile, GetPatentFilePath} from "../../../axios/patent"
+import {ElMessage, ElMessageBox} from 'element-plus';
+import {GetPatentFile, GetPatentFilePath, UpdateStatusByApplicationNumber} from "../../../axios/patent"
+
+//专利申请按钮
+const isApproved = ref(false);
+
+const handleApprove = () => {
+  ElMessageBox.confirm('是否通过专利申请?', '提示', {
+    confirmButtonText: '通过',
+    cancelButtonText: '不通过',
+    type: 'warning',
+  }).then(() => {
+    isApproved.value = true;
+    UpdateStatusByApplicationNumber(prop.applicationNo, 3)
+    Application(3)
+    ElMessage({
+      type: 'success',
+      message: '专利申请已通过!',
+    });
+  }).catch(() => {
+    isApproved.value = false;
+    UpdateStatusByApplicationNumber(prop.applicationNo, 4)
+    Application(4)
+    ElMessage({
+      type: 'info',
+      message: '专利申请未通过.',
+    });
+  });
+};
+
+
+//监听事件--申请不通过就直接返回--设置状态已驳回
+const emits = defineEmits(['application', 'status'])
+const Application = (status) => {
+  emits('application', false)
+  emits('status', status)
+}
+
 
 const prop = defineProps({
   applicant: {

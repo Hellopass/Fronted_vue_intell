@@ -61,7 +61,7 @@
               </template>
             </el-dialog>
             <!--            ----------------------------------->
-            <el-button class="!rounded-button whitespace-nowrap" @click="exportData">
+            <el-button class="!rounded-button whitespace-nowrap" @click="exportDatas">
               <el-icon class="mr-1">
                 <Download/>
               </el-icon>
@@ -91,7 +91,7 @@
       </div>
       <!-- 表格区域 -->
       <div class="bg-white p-6 rounded-lg shadow-sm">
-        <el-table :data="tableData" style="width: 100%" v-loading="loading">
+        <el-table :data="tableData" style="width: 100%" v-loading="loading" ref="exportTable">
           <el-table-column prop="name" label="专利名称" min-width="200">
             <template #default="{ row }">
               <div class="flex items-center">
@@ -120,30 +120,34 @@
               <el-button-group>
                 <!--           ============================================--------------->
                 <el-button type="primary" link @click="handleView(row)">查看</el-button>
-                <el-dialog v-model="lookValue" width="60%" @close="lookClose">
-                  <patent_information
-                      :applicant="row.applicant"
-                      :application-no="row.applicationNo"
-                      :date="row.date"
-                      :name="row.name"
-                      :progress=row.progress
-                      :status=row.type
-                  ></patent_information>
-                  <template #footer>
-                  <span class="dialog-footer">
-                 <el-button @click="lookValue = false">取 消</el-button>
-                 <el-button type="primary" @click="lookValue = false">确 定</el-button>
-                 </span>
-                  </template>
-                </el-dialog>
                 <!--           ============================================--------------->
-
                 <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
                 <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
               </el-button-group>
             </template>
           </el-table-column>
         </el-table>
+        <!--        查看弹窗-->
+        <el-dialog v-model="lookValue" width="60%" @close="lookClose">
+          <patent_information
+              :applicant="currentRow.applicant"
+              :application-no="currentRow.applicationNo"
+              :date="currentRow.date"
+              :name="currentRow.name"
+              :progress=currentRow.progress
+              :status=currentRow.type
+              v-on:application="getInformationApplication"
+              v-on:status="getInformationStatus"
+          ></patent_information>
+          <template #footer>
+                  <span class="dialog-footer">
+                 <el-button @click="lookValue = false">取 消</el-button>
+                 <el-button type="primary" @click="lookValue = false">确 定</el-button>
+                 </span>
+          </template>
+        </el-dialog>
+
+
         <!-- 分页 -->
         <div class="flex justify-end mt-4">
           <el-pagination
@@ -166,10 +170,12 @@ import {Search, Plus, Upload, Download, List, Grid, Refresh, Document} from '@el
 
 import PatentApply from './dialog/patent_apply.vue';
 import Bulk_import from "./dialog/bulk_import.vue";
-import {ElMessage, ElMessageBox} from "element-plus";
+import {ElLoading, ElMessage, ElMessageBox} from "element-plus";
 import axios from "axios";
 import {GetPatentList, DeletePatent, GetPatentListByKeyword} from '../../axios/patent'
 import Patent_information from "./dialog/patent_information.vue";
+import {saveAs} from 'file-saver'
+import * as XLSX from 'xlsx'
 
 const lookValue = ref(false)
 const loading = ref(false);
@@ -182,13 +188,25 @@ const searchForm = ref({
 });
 const tableData = ref([]);
 const tableDataB = ref([]);
-
+const currentRow = ref()
 //查看
 const lookClose = () => {
   lookValue.value = false
 }
 
+//---------
+//拿到information的值
+const getInformationApplication = (value: any) => {
+  lookValue.value = false
+  //在刷新一遍值
+  handleSearch()
+}
 
+const getInformationStatus = (value: any) => {
+
+}
+
+//---------
 const getStatusType = (status: string) => {
   const map: Record<string, string> = {
     1: 'info',
@@ -247,6 +265,7 @@ const pagination = (currentPage, pageSize, data) => {
   return data.slice(start, end);
 }
 
+//获取数据
 const handleSearch = () => {
   tableData.value = []
   loading.value = true;
@@ -296,7 +315,7 @@ const refreshTable = () => {
 };
 const handleView = (row: any) => {
   lookValue.value = true
-
+  currentRow.value = row
 };
 const handleEdit = (row: any) => {
   console.log('编辑', row);
@@ -304,18 +323,28 @@ const handleEdit = (row: any) => {
 };
 const handleDelete = (row: any) => {
   //删除专利信息
-  DeletePatent(row.applicationNo).then(res => {
-    if (res.data.success) {
-      handleSearch()
-      ElMessage.success("删除成功")
-    } else {
-      ElMessage.success("删除失败")
+  ElMessageBox.confirm('是否删除专利信息?', '提示', {
+    confirmButtonText: '是',
+    cancelButtonText: '否',
+    type: 'warning',
+  }).then(() => {
+    DeletePatent(row.applicationNo).then(res => {
+      if (res.data.success) {
+        handleSearch()
+        ElMessage.success("删除成功")
+      } else {
+        ElMessage.success("删除失败")
 
-    }
-  }).catch(err => {
+      }
+    }).catch(err => {
+      ElMessage.success("删除出现错误")
+
+    })
+  }).catch(() => {
     ElMessage.success("删除出现错误")
+  });
 
-  })
+
 };
 const handleSizeChange = (val: number) => {
   pageSize.value = val;
@@ -379,6 +408,84 @@ const getvalue = (value) => {
 onMounted(() => {
   handleSearch()
 })
+
+
+// 新增导出功能
+const exportTable = ref() // 表格引用
+
+const exportDatas = async () => {
+  try {
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在生成Excel文件...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    // 获取表格当前页数据（包含分页和筛选后的数据）
+    const currentData = tableData.value.map(row => ({
+      '专利名称': row.name,
+      '申请号': row.applicationNo,
+      '申请人': row.applicant,
+      '申请日期': row.date,
+      '状态': getStatusText(row.status),
+      '进度': `${row.progress}%`
+    }))
+
+    // 创建带说明的工作表
+    const worksheet = XLSX.utils.json_to_sheet([
+      {}, // 空行用于说明
+      ...currentData
+    ])
+
+    // 添加说明行（合并单元格）
+    const description = `专利管理系统数据导出 - 导出时间：${new Date().toLocaleString()}`
+    XLSX.utils.sheet_add_aoa(worksheet, [[description]], { origin: 'A1' })
+    worksheet['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } } // 合并首行所有列
+    ]
+
+    // 设置列宽
+    worksheet['!cols'] = [
+      { wch: 30 },  // 专利名称
+      { wch: 18 },  // 申请号
+      { wch: 20 },  // 申请人
+      { wch: 12 },  // 申请日期
+      { wch: 10 },  // 状态
+      { wch: 12 }   // 进度
+    ]
+
+    // 设置表头
+    const headers = ['专利名称', '申请号', '申请人', '申请日期', '状态', '进度']
+    XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: 'A2' })
+
+    // 创建Workbook
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, '专利数据')
+
+    // 生成文件
+    const wbout = XLSX.write(workbook, {
+      bookType: 'xlsx',
+      type: 'array',
+      bookSST: true
+    })
+
+    // 转换编码
+    const blob = new Blob([new Uint8Array(wbout)], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+
+    // 下载文件
+    saveAs(blob, `专利数据_${new Date().toISOString().slice(0,10)}.xlsx`)
+
+    ElMessage.success('导出成功')
+  } catch (error) {
+    ElMessage.error(`导出失败: ${error.message}`)
+  } finally {
+    ElLoading.service().close()
+  }
+}
+
+
 
 </script>
 <style scoped>

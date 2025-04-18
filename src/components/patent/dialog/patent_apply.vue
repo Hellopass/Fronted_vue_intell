@@ -219,7 +219,6 @@ const submitApplication = () => {
       //上传文件
       const uploadFile = UploadFile(uploadedFiles, apply_no);
       uploadFile.then((res) => {
-        console.log(res)
         if (res.data.success) {
           ElMessage.success('申请已提交成功！');
           //清空表单

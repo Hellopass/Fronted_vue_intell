@@ -19,11 +19,15 @@
       <el-table-column prop="date" label="更新时间" width="180"/>
       <el-table-column label="操作" width="120">
         <template #default>
-          <el-button type="primary" link>查看详情</el-button>
+          <el-button type="primary" link>费用管理</el-button>
         </template>
       </el-table-column>
     </el-table>
   </el-card>
+
+
+
+
 </template>
 
 <script setup>
