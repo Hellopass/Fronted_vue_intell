@@ -7,19 +7,19 @@
       <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
         <div class="flex gap-4 mb-4">
           <!-- 搜索输入 -->
-          <el-input placeholder="搜索专利名称/第一申请人/申请号" class="!w-72" v-model="searchKeyword"/>
+          <el-input placeholder="搜索商标名称/第一申请人" class="!w-72" v-model="searchKeyword"/>
 
           <!-- 状态筛选 -->
           <el-select v-model="filterStatus" placeholder="审核状态" class="!w-32">
             <el-option label="全部" value=""/>
             <el-option label="审核中" value="0"/>
-            <el-option label="已授权" value="1"/>
+            <el-option label="已通过" value="1"/>
             <el-option label="已驳回" value="2"/>
           </el-select>
 
           <!-- 类型筛选 -->
-          <el-select v-model="filterType" placeholder="专利类型" class="!w-32">
-            <el-option v-for="(label,value) in patentTypeOptions" :key="value" :label="label" :value="value"/>
+          <el-select v-model="filterType" placeholder="商标类型" class="!w-32">
+            <el-option v-for="(label,value) in trademarkTypeOptions" :key="value" :label="label" :value="value"/>
           </el-select>
 
           <!-- 操作按钮 -->
@@ -36,7 +36,7 @@
               <el-icon class="mr-1">
                 <Plus/>
               </el-icon>
-              专利申请
+              商标申请
             </el-button>
             <el-button @click="exportTableData">
               <el-icon class="mr-1">
@@ -66,13 +66,11 @@
             </template>
           </el-table-column>
           <!-- 各列定义 -->
-          <el-table-column prop="title" label="专利名称" width="200"/>
-          <!-- 添加申请号列 -->
-       <el-table-column prop="application_number" label="申请号" width="160" />
+          <el-table-column prop="title" label="商标名称" width="220"/>
           <el-table-column prop="applyDate" label="申请日期" width="120"/>
-
+          <el-table-column prop="application_number" label="申请号" width="180"/>
           <!-- 摘要列 -->
-          <el-table-column prop="abstract" label="专利说明" min-width="300">
+          <el-table-column prop="abstract" label="商标说明" min-width="300">
             <template #default="{row}">
               <el-tooltip :content="row.abstract" placement="top">
                 <span class="abstract-truncate">{{ truncateAbstract(row.abstract) }}</span>
@@ -94,14 +92,14 @@
           <!-- 状态列 -->
           <el-table-column prop="status" label="审核状态" width="120">
             <template #default="{row}">
-              <el-tag :type="statusColorMap[row.status]">{{ patentStatusOptions[row.status] }}</el-tag>
+              <el-tag :type="statusColorMap[row.status]">{{ trademarkStatusOptions[row.status] }}</el-tag>
             </template>
           </el-table-column>
 
           <!-- 类型列 -->
-          <el-table-column prop="type" label="专利类型" width="150">
+          <el-table-column prop="type" label="商标类型" width="150">
             <template #default="{row}">
-              <el-tag effect="plain">{{ patentTypeOptions[row.type] }}</el-tag>
+              <el-tag effect="plain">{{ trademarkTypeOptions[row.type] }}</el-tag>
             </template>
           </el-table-column>
 
@@ -138,7 +136,7 @@
 
     <!-- ******************************** 弹窗模块 ******************************** -->
     <!-- 审核对话框 -->
-    <el-dialog v-model="reviewDialogVisible" title="专利审核" width="500px">
+    <el-dialog v-model="reviewDialogVisible" title="商标审核" width="500px">
       <el-form
         :model="reviewForm"
         :rules="reviewRules"
@@ -170,8 +168,8 @@
         <el-button type="primary" @click="submitReview">确认</el-button>
       </template>
     </el-dialog>
-    <!-- 新建专利对话框 -->
-    <el-dialog v-model="createDialogVisible" title="新建专利" width="800px" :close-on-click-modal="false">
+    <!-- 新建商标对话框 -->
+    <el-dialog v-model="createDialogVisible" title="新建商标" width="800px" :close-on-click-modal="false">
       <el-form :model="createForm" :rules="formRules" ref="createFormRef" label-width="100px" label-position="right">
         <!-- 申请人选择字段 -->
         <el-form-item label="申请人列表" prop="applicants">
@@ -224,14 +222,14 @@
         </el-form-item>
 
         <!-- 类型选择 -->
-        <el-form-item label="专利类型" prop="type">
+        <el-form-item label="商标类型" prop="type">
           <el-select v-model="createForm.type" placeholder="请选择类型" class="!w-full">
-            <el-option v-for="(label, value) in patentTypeOptions" :key="value" :label="label" :value="value"/>
+            <el-option v-for="(label, value) in trademarkTypeOptions" :key="value" :label="label" :value="value"/>
           </el-select>
         </el-form-item>
 
         <!-- 名称输入 -->
-        <el-form-item label="专利全称" prop="title">
+        <el-form-item label="商标全称" prop="title">
           <el-input v-model="createForm.title" placeholder="请输入完整名称" clearable/>
         </el-form-item>
 
@@ -295,8 +293,12 @@
             <span>{{ detailData.applyDate }}</span>
           </div>
           <div class="info-item flex items-center">
-            <label class="text-gray-600 w-20">专利类型：</label>
-            <el-tag effect="plain">{{ patentTypeOptions[detailData.type] }}</el-tag>
+            <label class="text-gray-600 w-20">商标类型：</label>
+            <el-tag effect="plain">{{ trademarkTypeOptions[detailData.type] }}</el-tag>
+          </div>
+          <div class="info-item flex items-center">
+            <label class="text-gray-600 w-20">申请号：</label>
+            <span>{{ detailData.application_number }}</span>
           </div>
           <div class="info-item flex items-center">
             <label class="text-gray-600 w-20">详细说明：</label>
@@ -354,6 +356,7 @@
           </div>
 
           <!-- 图片预览 -->
+          <!-- 修正条件判断 -->
           <div v-else-if="['png', 'jpg', 'jpeg'].includes(currentFile.type)">
             <img :src="imageSrc" alt="Image Preview" class="max-w-full max-h-full"/>
           </div>
@@ -386,6 +389,7 @@ import {renderAsync} from 'docx-preview'
 import * as XLSX from 'xlsx';
 import { log } from 'echarts/types/src/util/log.js'
 
+
 /**************************** 导出文件 ****************************/
 const exportTableData = () => {
   if (tableData.value.length === 0) {
@@ -396,24 +400,24 @@ const exportTableData = () => {
   // 定义表头
   const headers = [
     'ID',
-    '专利名称',
+    '商标名称',
     '申请日期',
-    '专利说明',
+    '商标说明',
     '申请人',
     '审核状态',
-    '专利类型'
+    '商标类型'
   ];
 
   // 处理数据
   const data = tableData.value.map((item, index) => {
     return {
       'ID': (index + 1) + ((Number(currentPage) - 1) * Number(pageSize)),
-      '专利名称': item.title,
+      '商标名称': item.title,
       '申请日期': item.applyDate,
-      '专利说明': item.abstract,
+      '商标说明': item.abstract,
       '申请人': item.applicants.join(', '),
-      '审核状态': patentStatusOptions.value[item.status],
-      '专利类型': patentTypeOptions.value[item.type]
+      '审核状态': trademarkStatusOptions.value[item.status],
+      '商标类型': trademarkTypeOptions.value[item.type]
     };
   });
 
@@ -422,10 +426,10 @@ const exportTableData = () => {
 
   // 创建工作簿
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '专利信息');
+  XLSX.utils.book_append_sheet(wb, ws, '商标信息');
 
   // 导出文件
-  XLSX.writeFile(wb, '专利信息表.xlsx');
+  XLSX.writeFile(wb, '商标信息表.xlsx');
 };
 
 
@@ -451,7 +455,7 @@ interface ReviewForm {
   result: number // 1:通过 0:驳回
 }
 
-interface Patent {
+interface Trademark {
   id: number;
   title: string;
   abstract: string;
@@ -460,7 +464,6 @@ interface Patent {
   applicants: string[];
   files: FileInfo[];
   status: number;
-  current_step: number;
   application_number: string; 
 }
 
@@ -476,14 +479,15 @@ interface FileInfo {
 // 当前用户信息（应从登录状态获取）
 const currentUser = ref<User>()
 
-// 专利类型映射
-const patentTypeOptions = ref({
-  1: '发明专利',
-  2: '实用新型',
-  3: '外观设计',
+// 商标类型映射
+const trademarkTypeOptions = ref({
+  1: '商品商标',
+  2: '服务商标',
+  3: '集体商标',
+  4: '证明商标',
 })
-// 专利审核状态映射
-const patentStatusOptions = ref({
+// 商标审核状态映射
+const trademarkStatusOptions = ref({
   0: '审核中',
   1: '已通过',
   2: '被驳回',
@@ -526,7 +530,7 @@ const resetSearch = () => {
 }
 
 /**************************** 表格模块 ****************************/
-const tableData = ref<Patent[]>([])
+const tableData = ref<Trademark[]>([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
@@ -540,17 +544,17 @@ const fetchTableData = async () => {
       status: filterStatus.value,
       type: filterType.value
     };
-    const {data} = await axios.get('/patent/get_patents', {
+    const {data} = await axios.get('/trademark/get_trademarks', {
       params
     });
-    
+    // 使用Promise.all处理并行请求
     const processedTrademarks = await Promise.all(
-      data.data.patents.map(async (f: any) => {
-        
+      data.data.trademarks.map(async (f: any) => {
         // 获取文件信息
         let filesdata: FileInfo[] = [];
         try {
-          const fileRes = await axios.get("/patent/get_files", {params: {id: f.id}});
+          const fileRes = await axios.get("/trademark/get_files", {params: {id: f.id}});
+
           // 并行处理文件获取
           const filePromises = fileRes.data.data.map(async (c: any) => {
             try {
@@ -571,14 +575,12 @@ const fetchTableData = async () => {
             }
 
           });
-      
-          
+
           filesdata = (await Promise.all(filePromises)).filter(Boolean) as FileInfo[];
         } catch (e) {
           console.error('文件列表获取失败:', f.id, e);
         }
 
-        
         // 处理申请人信息
         const applicants = [f.first_author.user_name];
         if (f.co_applicants?.length) {
@@ -589,20 +591,21 @@ const fetchTableData = async () => {
           title: f.title,
           abstract: truncateAbstract(f.abstract),
           applyDate: f.apply_date.split('T')[0],
-          type: f.patent_type,
+          type: f.trademark_type,
           applicants,
           files: filesdata,
           status: f.approval_status,
-          current_step: f.current_step,
-          // 添加申请号字段
-          application_number: f.application_number 
+             // 添加申请号字段
+             application_number: f.application_number 
         };
       })
     );
 
     // 确保完整赋值
     tableData.value = processedTrademarks;
+    // 更新总数据量
     total.value = data.data.total;
+
   } catch (error) {
     console.error('获取商标数据失败:', error);
     ElMessage.error('获取商标数据失败，请稍后重试');
@@ -626,10 +629,11 @@ const handleSelectionChange = (selection: any[]) => {
 }
 
 // 显示详情
-const showDetail = (row: Patent) => {
+const showDetail = (row: Trademark) => {
   detailData.value = {...row}
   detailDialogVisible.value = true
 }
+
 
 const handleDelete = (row: Article) => {
   ElMessageBox.confirm(`确定删除商标《${row.title}》吗？`, '删除确认', {
@@ -638,7 +642,7 @@ const handleDelete = (row: Article) => {
     type: 'warning',
   }).then(async () => {
     try {
-      await axios.delete(`/patent/del_patent?id=${row.id}`)
+      await axios.delete(`/trademark/del_trademark?id=${row.id}`)
       ElMessage.success('删除成功')
       refreshTable()
     } catch (error) {
@@ -649,23 +653,26 @@ const handleDelete = (row: Article) => {
   })
 }
 
-// 审核对话框可见性
-const reviewDialogVisible = ref(false)
-// 审核表单
-const reviewForm = ref<ReviewForm>({
-  comment: '',
-  result: 1
-})
-// 审核表单规则
-const reviewRules = {
-  result: [{ required: true, message: '请选择审核结果', trigger: 'change' }],
-  comment: [{ required: true, message: '请输入审核意见', trigger: 'blur' }]
+const custatus = ref(0) //当前是初审还是终审
+const showReviewButton = (row: Article) => {
+  const userRole = currentUser.value?.authority
+  const status = row.status
+  custatus.value = status
+  // 普通用户不可见
+  if (!userRole || userRole === 'user') return false
+
+  // 管理员可以审核终审核
+  if (userRole === 'admin' && status === 2) return true
+
+  // 审核员只能审核特定状态
+  if (userRole === 'reviewer' && status === 1) return true
+
+  return false
 }
 // 审核表单引用
-const reviewFormRef = ref<InstanceType<typeof ElForm>>()
-  const currentReviewId = ref<number | null>(null)
+const currentReviewId = ref<number | null>(null)
 
-const handleReview = (row: Patent) => {
+const handleReview = (row: Trademark) => {
   currentReviewId.value = row.id
   reviewForm.value = {result: 1, comment: ''} // 重置表单
   reviewDialogVisible.value = true
@@ -678,11 +685,11 @@ const submitReview = () => {
   //审核员id
   //文章id
   const f = new FormData()
-  f.append('patent_id', currentReviewId.value)
+  f.append('trademark_id', currentReviewId.value)
   f.append('reviewer_id', currentUser.value.id.toString())
   f.append('comment', reviewForm.value.comment.toString())
   f.append('status', reviewForm.value.result.toString())
-  axios.put("/patent/update_patent_status", f, {
+  axios.put("/trademark/update_trademark_status", f, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -694,71 +701,15 @@ const submitReview = () => {
   fetchTableData()
   reviewDialogVisible.value = false
 }
-// 新建对话框可见性
-const createDialogVisible = ref(false)
-// 新建表单
-const createForm = ref({
-  applicants: [],
-  firstApplicantId: null,
-  type: null,
-  title: '',
-  abstract: '',
-  files: []
-})
-// 新建表单规则
-const formRules = {
-  applicants: [{ type: 'array', required: true, message: '请选择申请人', trigger: 'change' }],
-  firstApplicantId: [{ required: true, message: '请选择第一申请人', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择专利类型', trigger: 'change' }],
-  title: [{ required: true, message: '请输入专利名称', trigger: 'blur' }],
-  abstract: [{ required: true, message: '请输入详细说明', trigger: 'blur' }],
-}
-// 新建表单引用
-const createFormRef = ref<InstanceType<typeof ElForm>>()
-
+// 处理新建
+// 点击商标申请按钮的处理函数
 const handleCreate = () => {
-    // 重置表单
-    if (createFormRef.value) {
+  // 重置表单
+  if (createFormRef.value) {
     createFormRef.value.resetFields()
   }
-  // 打开新建专利对话框
+  // 打开新建商标对话框
   createDialogVisible.value = true
-}
-
-const handleApplicantsChange = () => {
-  // 可以在这里添加申请人选择变化后的逻辑
-}
-
-const searchUsers = (query: string) => {
-  userSearchKeyword.value = query
-}
-
-const setFirstApplicant = (id: number) => {
-  createForm.value.firstApplicantId = id
-}
-
-const currentFirstApplicantInfo = computed(() => {
-  const user = userList.value.find(u => u.id === createForm.value.firstApplicantId)
-  return user ? `${user.user_name} (ID:${user.id})` : '未选择'
-})
-
-const handleFileExceed = () => {
-  ElMessage.warning('最多只能上传 5 个文件')
-}
-
-const beforeFileUpload = (file: File) => {
-  const isPDF = file.type === 'application/pdf'
-  const isDOC = file.type === 'application/msword'
-  const isDOCX = file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  const isLt50M = file.size / 1024 / 1024 < 50
-
-  if (!isPDF && !isDOC && !isDOCX) {
-    ElMessage.error('上传文件只能是 PDF、DOC、DOCX 格式!')
-  }
-  if (!isLt50M) {
-    ElMessage.error('文件大小不能超过 50MB!')
-  }
-  return (isPDF || isDOC || isDOCX) && isLt50M
 }
 
 // 提交新建表单
@@ -767,7 +718,7 @@ const submitCreateForm = () => {
     if (valid) {
       // 处理文件上传
       const formData = new FormData()
-      formData.append('patentType', createForm.value.type.toString())
+      formData.append('trademarkType', createForm.value.type.toString())
       formData.append('title', createForm.value.title.toString())
       formData.append('abstract',createForm.value.abstract.toString()  )
       formData.append('firstAuthorId', createForm.value.firstApplicantId.toString())
@@ -779,88 +730,158 @@ const submitCreateForm = () => {
         formData.append('files', file.raw)
       })
 
-      axios.post('/patent/add', formData, {
+      axios.post('/trademark/add', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       }).then(() => {
-        ElMessage.success('专利申请提交成功')
+        ElMessage.success('商标申请提交成功')
         createDialogVisible.value = false
         refreshTable()
       }).catch((error) => {
-        console.error('专利申请提交失败:', error)
-        ElMessage.error('专利申请提交失败，请稍后重试')
+        console.error('商标申请提交失败:', error)
+        ElMessage.error('商标申请提交失败，请稍后重试')
       })
     }
   })
 }
 
-// 详情对话框可见性
-const detailDialogVisible = ref(false)
-// 详情数据
-const detailData = ref({
-  title: '',
-  applicants: [],
-  applyDate: '',
-  type: null,
-  abstract: '',
-  files: []
-})
-
-const handleBatchDownload = () => {
-  // 实现批量下载逻辑
+// 处理申请人变化
+const handleApplicantsChange = (value: number[]) => {
+  // 可以在这里添加申请人变化后的逻辑
 }
 
+// 设置第一申请人
+const setFirstApplicant = (id: number) => {
+  createForm.value.firstApplicantId = id
+}
+
+// 搜索用户
+const searchUsers = (query: string) => {
+  userSearchKeyword.value = query
+  // 可以在这里添加搜索用户的逻辑
+}
+
+// 处理文件超出限制
+const handleFileExceed = (files: any[], fileList: any[]) => {
+  ElMessage.warning(`当前限制选择 5 个文件，本次选择了 ${files.length} 个文件，共选择了 ${fileList.length} 个文件`)
+}
+
+// 文件上传前的钩子
+const beforeFileUpload = (file: any) => {
+  const isPDF = file.type === 'application/pdf'
+  const isDOC = file.type === 'application/msword'
+  const isDOCX = file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  const isLt50M = file.size / 1024 / 1024 < 50
+
+  if (!(isPDF || isDOC || isDOCX)) {
+    ElMessage.error('上传文件只能是 PDF/DOC/DOCX 格式!')
+  }
+  if (!isLt50M) {
+    ElMessage.error('上传文件大小不能超过 50MB!')
+  }
+  return (isPDF || isDOC || isDOCX) && isLt50M
+}
+
+// 处理批量下载
+const handleBatchDownload = () => {
+  // 可以在这里添加批量下载的逻辑
+}
+
+// 处理文件预览
 const handlePreview = (row: FileInfo) => {
   currentFile.value = row
   if (row.type === 'pdf') {
     pdfUrl.value = URL.createObjectURL(row.blob)
   } else if (['png', 'jpg', 'jpeg'].includes(row.type)) {
     imageSrc.value = URL.createObjectURL(row.blob)
+  } else if (['doc', 'docx'].includes(row.type)) {
+    nextTick(() => {
+      if (wordContainer.value) {
+        renderAsync(row.blob, wordContainer.value, null, {})
+      }
+    })
   }
   previewVisible.value = true
 }
 
+// 处理文件下载
 const handleDownload = (row: FileInfo) => {
+  const url = URL.createObjectURL(row.blob)
   const link = document.createElement('a')
-  link.href = URL.createObjectURL(row.blob)
+  link.href = url
   link.download = row.name
   link.click()
+  URL.revokeObjectURL(url)
 }
 
-// 预览对话框可见性
+// 审核对话框状态
+const reviewDialogVisible = ref(false)
+const reviewForm = ref<ReviewForm>({
+  comment: '',
+  result: 1
+})
+const reviewRules = {
+  result: [{ required: true, message: '请选择审核结果', trigger: 'change' }],
+  comment: [{ required: true, message: '请输入审核意见', trigger: 'blur' }]
+}
+const reviewFormRef = ref<InstanceType<typeof ElForm>>()
+const currentReviewTrademarkId = ref<number | null>(null)
+
+// 新建对话框状态
+const createDialogVisible = ref(false)
+const createForm = ref({
+  applicants: [] as number[],
+  firstApplicantId: null as number | null,
+  type: null as number | null,
+  title: '',
+  abstract: '',
+  files: [] as any[]
+})
+const formRules = {
+  applicants: [{ type: 'array', required: true, message: '请选择申请人', trigger: 'change' }],
+  firstApplicantId: [{ required: true, message: '请选择第一申请人', trigger: 'change' }],
+  type: [{ required: true, message: '请选择商标类型', trigger: 'change' }],
+  title: [{ required: true, message: '请输入商标全称', trigger: 'blur' }],
+  abstract: [{ required: true, message: '请输入详细说明', trigger: 'blur' }]
+}
+const createFormRef = ref<InstanceType<typeof ElForm>>()
+
+// 详情对话框状态
+const detailDialogVisible = ref(false)
+const detailData = ref<Trademark>({} as Trademark)
+
+// 文件预览对话框状态
 const previewVisible = ref(false)
-// 当前文件
 const currentFile = ref<FileInfo | null>(null)
-// PDF 地址
 const pdfUrl = ref('')
-// 图片地址
 const imageSrc = ref('')
-// Word 容器引用
-const wordContainer = ref(null)
+const wordContainer = ref<HTMLElement | null>(null)
 
-const showReviewButton = (row: Article) => {
-  const userRole = currentUser.value?.authority
-  const status = row.status
+// 当前第一申请人信息
+const currentFirstApplicantInfo = computed(() => {
+  const user = userList.value.find(u => u.id === createForm.value.firstApplicantId)
+  return user ? `${user.user_name} (ID:${user.id})` : '未选择'
+})
 
-  // 普通用户不可见
-  if (!userRole || userRole === 'user') return false
-
-  // 管理员可以审核终审核
-  if (userRole === 'admin' && status === 0 &&row.current_step==2) return true
-
-  // 审核员只能审核特定状态
-  if (userRole === 'reviewer' && status === 0 &&row.current_step==1) return true
-
-  return false
-}
-
-// 生命周期钩子
 onMounted(() => {
   fetchTableData()
-  axios.get('/user/find_all').then(({data}) => {
+  // 可以在这里添加获取用户列表的逻辑
+   // 初始化加载用户列表
+   axios.get('/user/find_all').then(({data}) => {
     userList.value = data.data.users
     currentUser.value = data.data.current
   })
 })
 </script>
+
+<style scoped>
+.abstract-truncate {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+

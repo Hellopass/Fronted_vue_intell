@@ -4,14 +4,9 @@ import RecentActivities from "./RecentActivities.vue";
 import StatsCard from "./StatsCard.vue";
 import TrendChart from "../home/TrendChart.vue";
 import DistributionChart from "./DistributionChart.vue";
-import {ref} from "vue";
-
-const statistics = ref([
-  {label: '专利总数', value: '328', icon: 'Document', iconClass: 'text-blue-500'},
-  {label: '著作权数', value: '156', icon: 'Notebook', iconClass: 'text-green-500'},
-  {label: '商标数量', value: '89', icon: 'PriceTag', iconClass: 'text-yellow-500'},
-  {label: '待审批', value: '12', icon: 'Bell', iconClass: 'text-red-500'}
-]);
+import {onMounted, ref} from "vue";
+import axios from "../../axios/axios";
+const statistics = ref([]);
 
 const recentActivities = ref([
   {type: '专利', name: '一种基于机器学习的图像识别方法', status: '审核中', date: '2024-01-15 14:30'},
@@ -20,6 +15,24 @@ const recentActivities = ref([
   {type: '专利', name: '新型环保材料制备工艺', status: '已授权', date: '2024-01-12 11:20'},
   {type: '著作', name: '数据分析平台开发文档', status: '审核中', date: '2024-01-11 15:40'}
 ]);
+
+const fetchData = async () => {
+  try {
+    const response = await axios.get('/statistics/get_all');
+    const data = response.data.data;
+    statistics.value.push( 
+      {label: '专利总数', value: data.patent_count, icon: 'Document', iconClass: 'text-blue-500'},
+     {label: '著作权数', value: data.article_count, icon: 'Notebook', iconClass: 'text-green-500'},
+     {label: '商标数量', value:data.trademark_count, icon: 'PriceTag', iconClass: 'text-yellow-500'},
+     {label: '待审批', value: data.pending_approval, icon: 'Bell', iconClass: 'text-red-500'})
+    
+  } catch (error) {
+    console.error('数据获取失败:', error);
+  }
+};
+onMounted(() => {
+  fetchData();
+});
 </script>
 
 <template>
@@ -39,7 +52,7 @@ const recentActivities = ref([
     <DistributionChart/>
   </div>
 
-  <RecentActivities :activities="recentActivities"/>
+  <!-- <RecentActivities :activities="recentActivities"/> -->
 </template>
 
 <style scoped>

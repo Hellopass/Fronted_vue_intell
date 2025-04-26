@@ -29,14 +29,6 @@
               show-password
           />
         </el-form-item>
-        <div class="login-options">
-          <el-checkbox v-model="form.remember" class="remember-checkbox">
-            记住密码
-          </el-checkbox>
-          <el-link type="primary" :underline="false">
-            <router-link to="/forget">忘记密码？</router-link>
-          </el-link>
-        </div>
         <el-button
             type="primary"
             class="login-button !rounded-button whitespace-nowrap"
@@ -45,55 +37,36 @@
         >
           登录
         </el-button>
-        <div class="divider">
-          <span class="divider-text">其他登录方式</span>
-        </div>
-        <div class="social-login">
-          <el-button
-              class="social-button !rounded-button whitespace-nowrap"
-              :icon="Message"
-              @click="handleSocialLogin('sms')"
-          >
-            短信登录
-          </el-button>
-          <el-button
-              class="social-button !rounded-button whitespace-nowrap"
-              :icon="Position"
-              @click="handleSocialLogin('qrcode')"
-          >
-            扫码登录
-          </el-button>
-        </div>
+        <!-- 移动忘记密码链接到登录按钮下方 -->
+        <el-link type="primary" :underline="false" class="forget-password-link">
+          <router-link to="/forget">忘记密码？</router-link>
+        </el-link>
       </el-form>
       <div class="register-tip">
+        <!-- 没有账号？立即注册 -->
         还没有账号？
         <el-link type="primary" :underline="false">
           <router-link to="/register">立即注册</router-link>
         </el-link>
-        <div class="agreement">
-          登录即表示同意
-          <el-link type="primary" :underline="false">用户协议</el-link>
-          和
-          <el-link type="primary" :underline="false">隐私政策</el-link>
-        </div>
       </div>
     </div>
   </div>
 </template>
 <script lang="ts" setup>
-import {ref, reactive, onMounted} from 'vue';
+import {ref, reactive} from 'vue';
 import type {FormInstance, FormRules} from 'element-plus';
 import {User, Lock, Message, Position} from '@element-plus/icons-vue';
 import {ElMessage} from 'element-plus';
 import axios from "../axios/axios";
 import router from "../router/index";
+import { log } from 'echarts/types/src/util/log.js';
 
 const formRef = ref<FormInstance>();
 const loading = ref(false);
 const form = reactive({
   username: '',
   password: '',
-  remember: false
+  // 移除 remember 字段
 });
 const rules: FormRules = {
   username: [
@@ -125,15 +98,43 @@ const handleLogin = async () => {
     const response = await axios.post('/login', formData, {
       headers: {'Content-Type': 'multipart/form-data'}
     });
+    console.log(response.data);
     if (response.data.success) {
       // 设置token
       localStorage.setItem('token', response.data.data.token);
       ElMessage.success(response.data.message);
-      router.push("/home").then(() => {
+     
+        
+// 根据用户角色跳转不同页面
+
+const role = response.data.data.role; // 假设服务器返回的角色信息在 response.data.data.role
+
+console.log(role);
+
+
+      let targetRoute = '/home';
+      switch (role) {
+        case 'admin':
+          targetRoute = '/home';
+          break;
+        case 'reviewer':
+          targetRoute = '/reviewer';
+          break;
+        case 'user':
+          targetRoute = '/user';
+          break;
+        default:
+          targetRoute = '/home';
+      }
+
+      router.push(targetRoute).then(() => {
         setTimeout(() => {
           window.location.reload();
-        }, 2000);
-      })
+        }, 1000);
+      });
+
+
+
     } else {
       ElMessage.error(response.data.message);
     }
@@ -147,16 +148,8 @@ const handleLogin = async () => {
 const handleSocialLogin = (type: string) => {
   ElMessage.info(`暂未开放${type === 'sms' ? '短信' : '扫码'}登录`);
 };
-//记住密码
-onMounted(() => {
-  const savedUsername = localStorage.getItem('username');
-  const savedPassword = localStorage.getItem('password');
-  if (savedUsername && savedPassword) {
-    form.username = savedUsername;
-    form.password = savedPassword;
-    form.remember = true;
-  }
-});
+
+// 移除 onMounted 中记住密码的逻辑
 </script>
 <style scoped>
 .login-container {
@@ -247,6 +240,11 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   gap: 24px;
+}
+
+.forget-password-link {
+  display: block;
+  text-align: center; 
 }
 
 .register-tip {

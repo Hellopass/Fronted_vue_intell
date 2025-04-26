@@ -1,7 +1,7 @@
-<!-- 管理员端 -->
+<!- 用户端-->
 <template>
   <div class="min-h-screen bg-gray-50">
-    <Sidebar @update:activeModule="activeModule = $event"/>
+    <Sidebaruser @update:activeModule="activeModule = $event"/>
     <main class="ml-64 min-h-screen">
       <div class="sticky top-0 z-50">
         <Header/>
@@ -20,6 +20,7 @@ import Sidebar from '../components/home/Sidebar.vue';
 import Header from '../components/home/Header.vue';
 import Dashboard from "./dashboard/dashboard.vue";
 import {ref} from "vue"
+import Sidebaruser from './home/Sidebaruser.vue';
 
 const activeModule = ref('dashboard')
 </script>

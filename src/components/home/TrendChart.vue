@@ -3,10 +3,10 @@
     <template #header>
       <div class="flex justify-between items-center">
         <span>专利申请趋势</span>
-        <el-select v-model="timeRange" placeholder="时间范围" class="w-32">
+        <el-select v-model="timeRange" placeholder="近半年" class="w-32">
           <el-option label="近一周" value="week"/>
           <el-option label="近一月" value="month"/>
-          <el-option label="近一年" value="year"/>
+          <el-option label="近半年" value="year"/>
         </el-select>
       </div>
     </template>
@@ -17,9 +17,9 @@
 <script setup lang="ts">
 import {ref, onMounted, watch} from 'vue';
 import * as echarts from 'echarts';
-
+import axios from '../../axios/axios';
 const chartRef = ref<HTMLElement>();
-const timeRange = ref('month');
+const timeRange = ref('year');
 let chartInstance: echarts.ECharts;
 
 const initChart = () => {
@@ -36,13 +36,29 @@ const initChart = () => {
       type: 'value'
     },
     series: [{
-      data: [25, 35, 45, 35, 55, 75],
       type: 'line',
       smooth: true
     }]
   });
+  fetchData();
 };
-
+const fetchData = async () => {
+  try {
+    const response = await axios.get('/statistics/get_all');
+    const data = response.data.data;
+    chartInstance.setOption({
+      xAxis: {
+        data: data.xAxisData
+      },
+      series: [{
+        data: data.patent_trend_last_six_months
+        
+      }]
+    });
+  } catch (error) {
+    console.error('数据获取失败:', error);
+  }
+};
 onMounted(initChart);
 watch(timeRange, initChart);
 </script>

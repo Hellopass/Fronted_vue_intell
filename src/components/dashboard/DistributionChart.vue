@@ -12,13 +12,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import * as echarts from 'echarts';
-
+import axios from "../../axios/axios";
 const chartRef = ref<HTMLElement>();
 let chartInstance: echarts.ECharts;
 
-onMounted(() => {
-  chartInstance = echarts.init(chartRef.value!);
-  chartInstance.setOption({
+const fetchData = async () => {
+  try {
+    const response = await axios.get('/statistics/get_all');
+    const data = response.data.data;
+    chartInstance.setOption({
     tooltip: {
       trigger: 'item'
     },
@@ -30,9 +32,9 @@ onMounted(() => {
       radius: ['40%', '70%'],
       center: ['50%', '45%'],
       data: [
-        { value: 328, name: '专利' },
-        { value: 156, name: '著作权' },
-        { value: 89, name: '商标' }
+      { value: data.patent_count, name: '专利' },
+        { value: data.article_count, name: '著作权' },
+        { value: data.trademark_count, name: '商标' }
       ],
       label: {
         show: true,
@@ -47,5 +49,12 @@ onMounted(() => {
       }
     }]
   });
+  } catch (error) {
+    console.error('数据获取失败:', error);
+  }
+};
+onMounted(() => {
+  chartInstance = echarts.init(chartRef.value!);
+  fetchData();
 });
 </script>

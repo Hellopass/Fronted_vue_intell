@@ -8,7 +8,7 @@
     </div>
     <nav class="p-4">
       <el-menu default-active="1" class="border-none">
-        <el-menu-item index="1" @click="navigateTo('dashboard')">
+        <el-menu-item index="1" @click="navigateTo('dashboard',['仪表盘'])">
           <el-icon>
             <DataBoard/>
           </el-icon>
@@ -22,10 +22,9 @@
             </el-icon>
             <span>专利管理</span>
           </template>
-          <el-menu-item index="2-1" @click="navigateTo('patent_apply')">专利信息</el-menu-item>
-<!--          <el-menu-item index="2-2" @click="navigateTo('patent_search')">专利检索</el-menu-item>-->
-          <el-menu-item index="2-3" @click="navigateTo('patent_fee')">年费管理</el-menu-item>
-          <el-menu-item index="2-4" @click="navigateTo('patent_statistics')">数据统计</el-menu-item>
+          <el-menu-item index="2-1" @click="navigateTo('patent_apply',['专利管理','专利信息'])">专利信息</el-menu-item>
+          <el-menu-item index="2-2" @click="navigateTo('')">数据统计</el-menu-item>
+          <el-menu-item index="2-4" @click="navigateTo('patentfee_information',['专利管理','年费信息'])">年费信息</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="3">
@@ -35,10 +34,9 @@
             </el-icon>
             <span>著作管理</span>
           </template>
-          <el-menu-item index="3-1">著作登记</el-menu-item>
-          <el-menu-item index="3-2">作品管理</el-menu-item>
-          <el-menu-item index="3-3">合同管理</el-menu-item>
-          <el-menu-item index="3-4">统计分析</el-menu-item>
+          <el-menu-item index="3-1" @click="navigateTo('article_information',['著作管理','著作信息'])">著作信息</el-menu-item>
+          <el-menu-item index="3-2" @click="navigateTo('')">数据统计</el-menu-item>
+          <el-menu-item index="3-4" @click="navigateTo('articlefee_information',['著作管理','年费管理'])">年费信息</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="4">
@@ -48,10 +46,9 @@
             </el-icon>
             <span>商标管理</span>
           </template>
-          <el-menu-item index="4-1">商标注册</el-menu-item>
-          <el-menu-item index="4-2">商标监测</el-menu-item>
-          <el-menu-item index="4-3">续展管理</el-menu-item>
-          <el-menu-item index="4-4">许可备案</el-menu-item>
+          <el-menu-item index="4-1"  @click="navigateTo('trademark_information',['商标管理','商标信息'])" >商标信息</el-menu-item>
+          <el-menu-item index="4-2" @click="navigateTo('')">数据统计</el-menu-item>
+          <el-menu-item index="4-4" @click="navigateTo('trademarkfee_information',['商标管理','年费管理'])">年费信息</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="5">
@@ -61,10 +58,8 @@
             </el-icon>
             <span>文档中心</span>
           </template>
-          <el-menu-item index="5-1">文档库</el-menu-item>
-          <el-menu-item index="5-2">模板中心</el-menu-item>
-          <el-menu-item index="5-3">知识分享</el-menu-item>
-          <el-menu-item index="5-4">文档审批</el-menu-item>
+          <el-menu-item index="5-1" @click="navigateTo('file_information',['文档中心','文档库'])">文档库</el-menu-item>
+          <el-menu-item index="5-2" @click="navigateTo('')">数据统计</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="6">
@@ -75,9 +70,9 @@
             <span>系统设置</span>
           </template>
           <el-menu-item index="6-1">用户管理</el-menu-item>
-          <el-menu-item index="6-2">角色权限</el-menu-item>
-          <el-menu-item index="6-3">组织架构</el-menu-item>
           <el-menu-item index="6-4">系统参数</el-menu-item>
+          <el-menu-item index="6-2" @click="navigateTo('')">数据统计</el-menu-item>
+          <el-menu-item index="6-3" @click="navigateTo('interface',['专利管理','接口管理'])">接口管理</el-menu-item>
         </el-sub-menu>
         <el-menu-item index="7" @click="navigateTo('personal_information')">
           <el-icon>
@@ -85,6 +80,7 @@
           </el-icon>
           <span>个人信息</span>
         </el-menu-item>
+
       </el-menu>
     </nav>
   </aside>
@@ -102,16 +98,22 @@ import {
 } from '@element-plus/icons-vue';
 import {useRouter} from 'vue-router';
 import {onMounted} from "vue";
-
+import { emitter } from '../../assets/eventBus'; // 导入事件总线
+import { number } from 'echarts';
 const router = useRouter();
 
-const navigateTo = (path: string) => {
-  router.push({path});
+const navigateTo = (path: string,data: string[]) => {
+  sendData(data)
+  router.push("/home/"+path);
+};
+
+const sendData = (data:any) => {
+  emitter.emit('custom-event', { data: data });
 };
 
 // 默认导航到 patent_apply 路由
 onMounted(() => {
-  router.push({path: 'dashboard'});
+  router.push({ path: '/home/dashboard'});
 });
 </script>
 

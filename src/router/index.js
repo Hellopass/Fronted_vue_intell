@@ -20,52 +20,116 @@ const router = createRouter({
             component: () => import('../components/forgetpassword.vue'),
         },
         {
+            path:'/user',
+            name:'user',
+            meta: { requiresAuth: true },
+            component:()=>import('../components/user.vue'),
+            children: [
+                {
+                    //     专利申请
+                    path: 'user_patent_apply',
+                    name: 'user_patent_apply',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/patent/patent_application.vue'),
+                },
+                {
+                    //个人信息
+                    path: 'user_personal_information',
+                    name: 'user_personal_information',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/personal/personal.vue'),
+                },
+                {
+                    path: 'user_article_information',
+                    name: 'user_article_information',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/article/article_information.vue'),
+                },
+                {
+                    path: 'user_trademark_information',
+                    name: 'user_trademark_information',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/trademark/trademark_information.vue'),
+                },
+            ]
+        },
+
+        {
             path: '/home',
             name: 'home',
             meta: { requiresAuth: true },
             component: () => import('../components/home.vue'),
             children: [
+                // 仪表盘
                 {
-                    path: '/dashboard',
+                    path: 'dashboard',
                     name: 'dashboard',
                     meta: { requiresAuth: true },
                     component: () => import('../components/dashboard/dashboard.vue'),
                 },
+                //文档库
                 {
-                    //     专利申请
-                    path: '/patent_apply',
+                    path: 'file_information',
+                    name: 'file_information',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/Files/files_information.vue'),
+                },
+                {
+                 //     专利申请
+                    path: 'patent_apply',
                     name: 'patent_apply',
                     meta: { requiresAuth: true },
                     component: () => import('../components/patent/patent_application.vue'),
                 },
                 {
-                    //专利检索
-                    path: '/patent_search',
-                    name: 'patent_search',
-                    meta: { requiresAuth: true },
-                    component: () => import('../components/patent/patent_search.vue'),
-                },
-                {
-                    //专利年费管理
-                    path: '/patent_fee',
-                    name: 'patent_fee',
-                    meta: { requiresAuth: true },
-                    component: () => import('../components/patent/patent_fee.vue'),
-                },
-                {
-                    //专利数据统计
-                    path: '/patent_statistics',
-                    name: 'patent_statistics',
-                    meta: { requiresAuth: true },
-                    component: () => import('../components/patent/patent_statistics.vue'),
-                },
-                {
                     //个人信息
-                    path: '/personal_information',
+                    path: 'personal_information',
                     name: 'personal_information',
                     meta: { requiresAuth: true },
                     component: () => import('../components/personal/personal.vue'),
-                }
+                },
+                //著作信息
+                {
+                    path: 'article_information',
+                    name: 'article_information',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/article/article_information.vue'),
+                },
+                //商标信息
+                {
+                    path: 'trademark_information',
+                    name: 'trademark_information',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/trademark/trademark_information.vue'),
+                },
+                //专利年费信息
+                {
+                    path: 'patentfee_information',
+                    name: 'patentfee_information',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/patent/patent_fee.vue'),
+                },
+                //商标年费信息
+                {
+                    path: 'trademarkfee_information',
+                    name: 'trademarkfee_information',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/trademark/trademark_fee.vue'),
+                },
+                //著作年费信息
+                {
+                    path: 'articlefee_information',
+                    name: 'articlefee_information',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/article/aritcle_fee.vue'),
+                },
+                  //专利接口信息
+                  {
+                    path: 'interface',
+                    name: 'interface',
+                    meta: { requiresAuth: true },
+                    component: () => import('../components/interface/interfacemanagement.vue'),
+                },
             ],
         },
         // 404 处理（必须放在最后）

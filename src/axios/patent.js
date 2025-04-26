@@ -148,3 +148,7 @@ export function GetPatentFeesByFilters(status, keyword, page, pageSize) {
     })
 }
 
+//专利分析
+export function GetPatentAnalysis() {
+    return axios.get(`/patent/get_analysis`)
+}

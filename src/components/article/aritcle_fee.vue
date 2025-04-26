@@ -1,14 +1,12 @@
 <template>
   <div class="min-h-screen bg-gray-50 p-8">
-
     <!-- 搜索区域 -->
     <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
       <div class="flex items-center gap-4">
-        <!-- 增加 min-w-[300px] 类来设置最小宽度，也可以根据需要调整 -->
         <div class="flex-1 relative min-w-[1100px]"> 
           <el-input
             v-model="searchQuery"
-            placeholder="请输入专利名称或申请号搜索"
+            placeholder="请输入著作名称搜索"
             class="!rounded-button"
           >
             <template #prefix>
@@ -32,9 +30,8 @@
         </el-button>
       </div>
     </div>
-
-    <!-- 数据统计卡片 -->
-    <div class="grid grid-cols-4 gap-6 mb-6">
+<!-- 数据统计卡片 -->
+<div class="grid grid-cols-4 gap-6 mb-6">
       <div class="bg-white p-6 rounded-lg shadow-sm">
         <div class="flex items-center justify-between">
           <div>
@@ -72,7 +69,6 @@
         </div>
       </div>
     </div>
-
     <!-- 表格工具栏 -->
     <div class="bg-white p-4 rounded-t-lg shadow-sm border-b flex justify-between items-center">
       <div class="flex items-center gap-2">
@@ -90,7 +86,7 @@
       </div>
     </div>
 
-    <!-- 专利年费表格 -->
+    <!-- 著作年费表格 -->
     <div class="bg-white rounded-b-lg shadow-sm">
       <el-table
         :data="tableData"
@@ -98,7 +94,7 @@
         style="width: 100%"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="title" label="专利名称/编号" min-width="300">
+        <el-table-column prop="title" label="著作名称/申请号" min-width="300">
           <template #default="{ row }">
             <div class="flex flex-col">
               <span class="font-medium">{{ row.title }}</span>
@@ -106,7 +102,6 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="type" label="专利类型" width="120" />
         <el-table-column prop="amount" label="应缴金额" width="120">
           <template #default="{ row }">
             <span class="font-medium">¥ {{ row.review_fee }}</span>
@@ -152,7 +147,6 @@
           :total="total"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next"
-          class="!rounded-button"
         />
       </div>
     </div>
@@ -215,7 +209,7 @@ const handleSelectionChange = (rows: any[]) => {
 const fetchData = async () => {
   tableData.value = []; // 清空表格数据
   try {
-    const response = await axios.get('/patent/get_fee_all', {
+    const response = await axios.get('/article/get_fee_all', {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value,
@@ -224,10 +218,12 @@ const fetchData = async () => {
       }
     });
     const data = response.data;
+    console.log(data.data.fees);
+    
     tableData.value = data.data.fees.map((item: any) => ({
-      title: item.patent.title,
-      application_number: item.patent.application_number,
-      type: item.patent.patent_type,
+      title: item.article.title,
+      application_number: item.article.application_number,
+      type: item.article.patent_type,
       review_fee: item.review_fee,
       deadline: item.payment_deadline.split('T')[0],
       status: item.status
@@ -244,7 +240,7 @@ const fetchData = async () => {
 onMounted(() => {
   fetchData()
   //获取数据统计信息
-  axios.get('/patent/get_monthly_fee_stats').then((response) => {
+  axios.get('/article/get_monthly_fee_stats').then((response) => {
     const data =response.data.data
     overdue_count.value = data.overdue_count;
     paid_amount.value = data.paid_amount;
@@ -295,4 +291,3 @@ const exportToExcel = () => {
   box-shadow: 0 0 0 1px #409eff;
 }
 </style>
-
